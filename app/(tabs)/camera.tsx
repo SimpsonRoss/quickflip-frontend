@@ -116,7 +116,7 @@ export default function CameraScreen() {
 
   if (!permission?.granted) {
     return (
-      <SafeAreaView style={styles.permissionContainer}>
+      <SafeAreaView style={styles.permissionContainer} >
         <StatusBar barStyle="dark-content" backgroundColor="#3864bb" />
         <View style={styles.permissionContent}>
           <View style={styles.permissionIconContainer}>
@@ -254,11 +254,11 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   permissionButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#3864bb",
     borderRadius: 12,
     paddingHorizontal: 32,
     paddingVertical: 16,
-    shadowColor: "#007AFF",
+    shadowColor: "#3864bb",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

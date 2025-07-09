@@ -1,7 +1,7 @@
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useStore } from '@/store';
-import * as Haptics from 'expo-haptics';
-import { useState } from 'react';
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { ScannedItem, useStore } from "@/store";
+import * as Haptics from "expo-haptics";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,9 +11,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ScannedScreen() {
   const allItems = useStore((state) => state.items);
@@ -22,13 +23,17 @@ export default function ScannedScreen() {
 
   const scannedItems = allItems.filter((i) => !i.purchased && !i.sold);
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
+  const [editMode, setEditMode] = useState(false);
 
   const handleConfirm = (id: string) => {
     const rawPrice = priceInputs[id];
     const price = parseFloat(rawPrice);
 
     if (isNaN(price) || price <= 0) {
-      Alert.alert('Invalid price', 'Please enter a valid number greater than 0');
+      Alert.alert(
+        "Invalid price",
+        "Please enter a valid number greater than 0"
+      );
       return;
     }
 
@@ -43,13 +48,13 @@ export default function ScannedScreen() {
 
   const handleClearScannedOnly = () => {
     Alert.alert(
-      'Clear Scanned Items',
-      'This will permanently delete all scanned (unpurchased) items. Are you sure?',
+      "Clear Scanned Items",
+      "This will permanently delete all scanned (unpurchased) items. Are you sure?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Clear All',
-          style: 'destructive',
+          text: "Clear All",
+          style: "destructive",
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             updateStore((state) => ({
@@ -62,11 +67,11 @@ export default function ScannedScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert('Delete Item', 'Are you sure you want to delete this item?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
+      { text: "Cancel", style: "cancel" },
       {
-        text: 'Delete',
-        style: 'destructive',
+        text: "Delete",
+        style: "destructive",
         onPress: () => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
           updateStore((state) => ({
@@ -79,25 +84,25 @@ export default function ScannedScreen() {
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>Scanned Items</Text>
-        <View style={styles.itemCountBadge}>
-          <Text style={styles.itemCountText}>{scannedItems.length}</Text>
+      <View style={styles.headerMain}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Scanned Items</Text>
+          <View style={styles.itemCountBadge}>
+            <Text style={styles.itemCountText}>{scannedItems.length}</Text>
+          </View>
         </View>
+
+        {scannedItems.length > 0 && (
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => setEditMode(!editMode)}
+          >
+            <Text style={styles.editButtonText}>
+              {editMode ? "Save" : "Edit"}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
-      
-      {scannedItems.length > 0 && (
-        <Pressable
-          style={({ pressed }) => [
-            styles.clearButton,
-            pressed && { opacity: 0.7 }
-          ]}
-          onPress={handleClearScannedOnly}
-        >
-          <IconSymbol name="trash" size={16} color="#FF3B30" />
-          <Text style={styles.clearButtonText}>Clear All</Text>
-        </Pressable>
-      )}
     </View>
   );
 
@@ -108,33 +113,39 @@ export default function ScannedScreen() {
       </View>
       <Text style={styles.emptyTitle}>No Scanned Items</Text>
       <Text style={styles.emptyDescription}>
-        Use the Camera tab to scan items and they'll appear here
+        Use the Camera tab to scan items and they will appear here
       </Text>
     </View>
   );
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item }: { item: ScannedItem }) => {
     const isLoading = !item.title || !item.description;
-    let confidence: 'Low' | 'Medium' | 'High' = 'Low';
+    let confidence: "Low" | "Medium" | "High" = "Low";
     const count = item.priceCount ?? 0;
-    if (count >= 5 && count <= 10) confidence = 'Medium';
-    else if (count > 10) confidence = 'High';
+    if (count >= 5 && count <= 10) confidence = "Medium";
+    else if (count > 10) confidence = "High";
 
-    const confidenceColor = confidence === 'High' ? '#34C759' : 
-                           confidence === 'Medium' ? '#FF9500' : '#8E8E93';
+    const confidenceColor =
+      confidence === "High"
+        ? "#34C759"
+        : confidence === "Medium"
+        ? "#FF9500"
+        : "#8E8E93";
 
     return (
       <View style={styles.itemCard}>
-        {/* Delete Button */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.deleteButton,
-            pressed && { backgroundColor: '#CC0000' }
-          ]}
-          onPress={() => handleDelete(item.id)}
-        >
-          <IconSymbol name="xmark" size={14} color="#FFFFFF" />
-        </Pressable>
+        {/* Delete Button - Only show in edit mode */}
+        {editMode && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.deleteButton,
+              pressed && { backgroundColor: "#CC0000" },
+            ]}
+            onPress={() => handleDelete(item.id)}
+          >
+            <IconSymbol name="xmark" size={14} color="#FFFFFF" />
+          </Pressable>
+        )}
 
         {/* Item Image */}
         <View style={styles.imageContainer}>
@@ -150,7 +161,7 @@ export default function ScannedScreen() {
         <View style={styles.itemContent}>
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator size="small" color="#3864bb" />
               <Text style={styles.loadingText}>Analyzing item...</Text>
             </View>
           ) : (
@@ -160,36 +171,59 @@ export default function ScannedScreen() {
                   {item.title}
                 </Text>
               )}
-              
+
               {item.description && (
                 <Text style={styles.itemDescription} numberOfLines={3}>
                   {item.description}
                 </Text>
               )}
-              
+
               {item.condition && (
                 <View style={styles.conditionContainer}>
                   <IconSymbol name="checkmark.seal" size={16} color="#34C759" />
-                  <Text style={styles.conditionText}>Condition: {item.condition}</Text>
+                  <Text style={styles.conditionText}>
+                    Condition: {item.condition}
+                  </Text>
                 </View>
               )}
-              
+
               {item.estimatedPrice != null && item.priceCount != null && (
                 <View style={styles.priceInfoContainer}>
                   <View style={styles.priceRow}>
-                    <IconSymbol name="dollarsign.circle" size={16} color="#34C759" />
+                    <IconSymbol
+                      name="dollarsign.circle"
+                      size={16}
+                      color="#34C759"
+                    />
                     <Text style={styles.priceText}>
-                      Avg price: ${item.estimatedPrice.toFixed(2)}
+                      Est. Value: ${item.estimatedPrice.toFixed(2)}
                     </Text>
                   </View>
                   <View style={styles.confidenceRow}>
-                    <View style={[styles.confidenceBadge, { backgroundColor: `${confidenceColor}15` }]}>
-                      <View style={[styles.confidenceDot, { backgroundColor: confidenceColor }]} />
-                      <Text style={[styles.confidenceText, { color: confidenceColor }]}>
+                    <View
+                      style={[
+                        styles.confidenceBadge,
+                        { backgroundColor: `${confidenceColor}15` },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.confidenceDot,
+                          { backgroundColor: confidenceColor },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.confidenceText,
+                          { color: confidenceColor },
+                        ]}
+                      >
                         {confidence} confidence
                       </Text>
                     </View>
-                    <Text style={styles.salesCountText}>({item.priceCount} sales)</Text>
+                    <Text style={styles.salesCountText}>
+                      ({item.priceCount} sales)
+                    </Text>
                   </View>
                 </View>
               )}
@@ -205,7 +239,7 @@ export default function ScannedScreen() {
                       keyboardType="numeric"
                       placeholder="0.00"
                       placeholderTextColor="#8E8E93"
-                      value={priceInputs[item.id] ?? ''}
+                      value={priceInputs[item.id] ?? ""}
                       onChangeText={(text) =>
                         setPriceInputs((prev) => ({ ...prev, [item.id]: text }))
                       }
@@ -215,7 +249,7 @@ export default function ScannedScreen() {
                     style={({ pressed }) => [
                       styles.confirmButton,
                       pressed && { opacity: 0.8 },
-                      !priceInputs[item.id] && styles.confirmButtonDisabled
+                      !priceInputs[item.id] && styles.confirmButtonDisabled,
                     ]}
                     onPress={() => handleConfirm(item.id)}
                     disabled={!priceInputs[item.id]}
@@ -233,16 +267,38 @@ export default function ScannedScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+      {/* Sticky Header */}
+      {renderHeader()}
+
       <FlatList
         data={scannedItems}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyState}
-        contentContainerStyle={scannedItems.length === 0 ? styles.emptyListContainer : styles.listContainer}
+        contentContainerStyle={
+          scannedItems.length === 0
+            ? styles.emptyListContainer
+            : styles.listContainer
+        }
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Floating Clear All Button */}
+      {editMode && scannedItems.length > 0 && (
+        <View style={styles.floatingButtonContainer}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.floatingClearButton,
+              pressed && { opacity: 0.7 },
+            ]}
+            onPress={handleClearScannedOnly}
+          >
+            <IconSymbol name="trash" size={20} color="#FFFFFF" />
+            <Text style={styles.floatingClearButtonText}>Clear All</Text>
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -255,19 +311,28 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
     paddingBottom: 32,
+    paddingTop: 0, // Remove top padding since header is now outside
   },
   emptyListContainer: {
     flexGrow: 1,
     padding: 16,
+    paddingTop: 0, // Remove top padding since header is now outside
   },
   headerContainer: {
+    backgroundColor: "#F2F2F7", // Match container background
+    paddingTop: 16,
+    paddingBottom: 20,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
+  },
+  headerMain: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-    paddingHorizontal: 4,
   },
-  headerContent: {
+  headerLeft: {
     flexDirection: "row",
     alignItems: "center",
   },
@@ -290,18 +355,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  clearButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 59, 48, 0.1)",
+  editButton: {
+    backgroundColor: "#3864bb",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    gap: 6,
   },
-  clearButtonText: {
-    color: "#FF3B30",
+  editButtonText: {
+    color: "#FFFFFF",
     fontSize: 14,
+    fontWeight: "600",
+  },
+  floatingButtonContainer: {
+    position: "absolute",
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  floatingClearButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FF3B30",
+    borderRadius: 25,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  floatingClearButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
     fontWeight: "600",
   },
   emptyState: {
@@ -500,7 +589,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   confirmButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#3864bb",
     borderRadius: 10,
     paddingHorizontal: 16,
     height: 44,
@@ -508,7 +597,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    shadowColor: "#007AFF",
+    shadowColor: "#3864bb",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,

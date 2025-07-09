@@ -37,7 +37,7 @@ export default function TabLayout() {
           marginTop: 4,
         },
         tabBarIconStyle: {
-          marginTop: 4,
+          marginTop: 0,
         },
       }}
     >

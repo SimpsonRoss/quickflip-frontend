@@ -31,6 +31,18 @@ const MAPPING = {
   "chart.line.uptrend.xyaxis": "trending-up",
   "bolt.fill": "flash-on",
   sparkles: "auto-awesome",
+  xmark: "close",
+  "xmark.circle": "cancel",
+  trash: "delete",
+  checkmark: "check",
+  "checkmark.circle": "check-circle",
+  "checkmark.circle.fill": "check-circle",
+  "checkmark.seal": "verified",
+  "arrow.up.circle": "keyboard-arrow-up",
+  "arrow.down.circle": "keyboard-arrow-down",
+  "arrow.up.right": "north-east",
+  "arrow.down.right": "south-east",
+  "dollarsign.circle": "monetization-on",
 } as IconMapping;
 
 /**
