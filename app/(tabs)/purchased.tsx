@@ -90,18 +90,6 @@ export default function PurchasedScreen() {
     Object.entries(localValues).forEach(([id, values]) => {
       const pricePaid = parseFloat(values.pricePaid);
       const estimatedPrice = parseFloat(values.estimatedPrice);
-      const updated: Partial<typeof items[number]> = {};
-      if (!isNaN(pricePaid)) updated.pricePaid = pricePaid;
-      if (!isNaN(estimatedPrice)) updated.estimatedPrice = estimatedPrice;
-      updateItem(id, updated);
-    });
-    setEditMode(false);
-  };
-
-  const handleSave = () => {
-    Object.entries(localValues).forEach(([id, values]) => {
-      const pricePaid = parseFloat(values.pricePaid);
-      const estimatedPrice = parseFloat(values.estimatedPrice);
       const updated: Partial<ScannedItem> = {};
       if (!isNaN(pricePaid)) updated.pricePaid = pricePaid;
       if (!isNaN(estimatedPrice)) updated.estimatedPrice = estimatedPrice;
@@ -715,7 +703,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E5EA",
     paddingHorizontal: 12,
     height: 40,
-    minWidth: 100,
+    minWidth: 120,
   },
   editInput: {
     flex: 1,

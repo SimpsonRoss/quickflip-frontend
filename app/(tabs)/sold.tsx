@@ -87,18 +87,6 @@ export default function SoldScreen() {
     ]);
   };
 
-  const handleSave = () => {
-    Object.entries(localValues).forEach(([id, values]) => {
-      const pricePaid = parseFloat(values.pricePaid);
-      const priceSold = parseFloat(values.priceSold);
-      const updated: Partial<typeof items[number]> = {};
-      if (!isNaN(pricePaid)) updated.pricePaid = pricePaid;
-      if (!isNaN(priceSold)) updated.priceSold = priceSold;
-      updateItem(id, updated);
-    });
-    setEditMode(false);
-  };
-
   const renderBasicHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.headerContent}>
@@ -718,7 +706,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E5EA",
     paddingHorizontal: 12,
     height: 40,
-    minWidth: 100,
+    minWidth: 120,
   },
   dollarSign: {
     fontSize: 16,
