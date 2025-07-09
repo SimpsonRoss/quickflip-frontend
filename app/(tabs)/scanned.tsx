@@ -1,12 +1,15 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { ScannedItem, useStore } from "@/store";
 import * as Haptics from "expo-haptics";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -24,6 +27,27 @@ export default function ScannedScreen() {
   const scannedItems = allItems.filter((i) => !i.purchased && !i.sold);
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
   const [editMode, setEditMode] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      () => {
+        setKeyboardVisible(true);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   const handleConfirm = (id: string) => {
     const rawPrice = priceInputs[id];
@@ -268,37 +292,44 @@ export default function ScannedScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {/* Sticky Header */}
-      {renderHeader()}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        {/* Sticky Header */}
+        {renderHeader()}
 
-      <FlatList
-        data={scannedItems}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListEmptyComponent={renderEmptyState}
-        contentContainerStyle={
-          scannedItems.length === 0
-            ? styles.emptyListContainer
-            : styles.listContainer
-        }
-        showsVerticalScrollIndicator={false}
-      />
+        <FlatList
+          data={scannedItems}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListEmptyComponent={renderEmptyState}
+          contentContainerStyle={
+            scannedItems.length === 0
+              ? styles.emptyListContainer
+              : styles.listContainer
+          }
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
 
-      {/* Floating Clear All Button */}
-      {editMode && scannedItems.length > 0 && (
-        <View style={styles.floatingButtonContainer}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.floatingClearButton,
-              pressed && { opacity: 0.7 },
-            ]}
-            onPress={handleClearScannedOnly}
-          >
-            <IconSymbol name="trash" size={20} color="#FFFFFF" />
-            <Text style={styles.floatingClearButtonText}>Clear All</Text>
-          </Pressable>
-        </View>
-      )}
+        {/* Floating Clear All Button - Hide when keyboard is visible */}
+        {editMode && scannedItems.length > 0 && !keyboardVisible && (
+          <View style={styles.floatingButtonContainer}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.floatingClearButton,
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={handleClearScannedOnly}
+            >
+              <IconSymbol name="trash" size={20} color="#FFFFFF" />
+              <Text style={styles.floatingClearButtonText}>Clear All</Text>
+            </Pressable>
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -307,6 +338,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F2F2F7",
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   listContainer: {
     padding: 16,
