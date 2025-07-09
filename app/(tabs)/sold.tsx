@@ -1,4 +1,5 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import { KeyboardAwareProductCard } from "@/components/ui/KeyboardAwareProductCard";
 import useKeyboardAwareCards from "@/hooks/useKeyboardAwareCards";
 import { ScannedItem, useStore } from "@/store";
 import * as Haptics from "expo-haptics";
@@ -7,6 +8,8 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -26,8 +29,9 @@ export default function SoldScreen() {
   const [localValues, setLocalValues] = useState<{
     [id: string]: { pricePaid: string; priceSold: string };
   }>({});
-  
-  const { handleCardFocus, handleCardBlur, isCardFocused } = useKeyboardAwareCards();
+
+  const { handleCardFocus, handleCardBlur, isCardFocused } =
+    useKeyboardAwareCards();
 
   // Initialize local values when entering edit mode
   useEffect(() => {
@@ -371,20 +375,29 @@ export default function SoldScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {/* Sticky Header */}
-      {renderBasicHeader()}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        {/* Sticky Header */}
+        {renderBasicHeader()}
 
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListHeaderComponent={renderAnalyticsCards}
-        ListEmptyComponent={renderEmptyState}
-        contentContainerStyle={
-          items.length === 0 ? styles.emptyListContainer : styles.listContainer
-        }
-        showsVerticalScrollIndicator={false}
-      />
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListHeaderComponent={renderAnalyticsCards}
+          ListEmptyComponent={renderEmptyState}
+          contentContainerStyle={
+            items.length === 0
+              ? styles.emptyListContainer
+              : styles.listContainer
+          }
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -393,6 +406,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F2F2F7",
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   listContainer: {
     padding: 16,
