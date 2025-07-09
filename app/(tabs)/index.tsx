@@ -1,3 +1,4 @@
+import { RevenueChart } from "@/components/RevenueChart";
 import { ThemedText } from "@/components/ThemedText";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
@@ -27,6 +28,11 @@ export default function HomeScreen() {
               Scan, Buy, Sell, Profit
             </ThemedText>
           </View>
+        </View>
+
+        {/* Revenue Chart */}
+        <View style={styles.contentSection}>
+          <RevenueChart />
         </View>
 
         {/* Feature Cards */}
@@ -108,7 +114,7 @@ export default function HomeScreen() {
           {/* Coming Soon Section */}
           <View style={styles.comingSoonSection}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              What's coming next?
+              What&apos;s coming next?
             </ThemedText>
 
             <View style={styles.comingSoonCard}>
