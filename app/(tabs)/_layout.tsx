@@ -1,39 +1,39 @@
 // (tabs)/_layout.tsx
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { HapticTab } from "@/components/HapticTab";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import TabBarBackground from "@/components/ui/TabBarBackground";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Tabs } from "expo-router";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: isDark ? '#8E8E93' : '#8E8E93',
+        tabBarActiveTintColor: "#45c5c8",
+        tabBarInactiveTintColor: "#FFFFFF",
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: {
-          backgroundColor: isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+          backgroundColor: "#0b1c38",
           borderTopWidth: 0,
           elevation: 0,
-          shadowColor: '#000',
+          shadowColor: "#000",
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 8,
-          height: Platform.OS === 'ios' ? 90 : 70,
+          height: Platform.OS === "ios" ? 90 : 85,
           paddingTop: 8,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          paddingBottom: Platform.OS === "ios" ? 28 : 20,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontWeight: "600",
           marginTop: 4,
         },
         tabBarIconStyle: {
@@ -44,12 +44,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 30 : 26} 
-              name={focused ? "house.fill" : "house"} 
-              color={color} 
+            <IconSymbol
+              size={focused ? 30 : 26}
+              name={focused ? "house.fill" : "house"}
+              color={color}
             />
           ),
         }}
@@ -57,12 +57,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scanned"
         options={{
-          title: 'Scanned',
+          title: "Scanned",
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 30 : 26} 
-              name={focused ? "list.bullet.rectangle.fill" : "list.bullet"} 
-              color={color} 
+            <IconSymbol
+              size={focused ? 30 : 26}
+              name={focused ? "list.bullet.rectangle.fill" : "list.bullet"}
+              color={color}
             />
           ),
         }}
@@ -70,12 +70,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="camera"
         options={{
-          title: 'Camera',
+          title: "Camera",
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 32 : 28} 
-              name={focused ? "camera.fill" : "camera"} 
-              color={color} 
+            <IconSymbol
+              size={focused ? 32 : 28}
+              name={focused ? "camera.fill" : "camera"}
+              color={color}
             />
           ),
         }}
@@ -83,12 +83,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="purchased"
         options={{
-          title: 'Purchased',
+          title: "Purchased",
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 30 : 26} 
-              name={focused ? "bag.fill" : "bag"} 
-              color={color} 
+            <IconSymbol
+              size={focused ? 30 : 26}
+              name={focused ? "bag.fill" : "bag"}
+              color={color}
             />
           ),
         }}
@@ -96,12 +96,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="sold"
         options={{
-          title: 'Sold',
+          title: "Sold",
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 30 : 26} 
-              name={focused ? "creditcard.fill" : "creditcard"} 
-              color={color} 
+            <IconSymbol
+              size={focused ? 30 : 26}
+              name={focused ? "creditcard.fill" : "creditcard"}
+              color={color}
             />
           ),
         }}
