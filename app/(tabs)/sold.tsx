@@ -1,4 +1,5 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import useKeyboardAwareCards from "@/hooks/useKeyboardAwareCards";
 import { ScannedItem, useStore } from "@/store";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
@@ -25,6 +26,8 @@ export default function SoldScreen() {
   const [localValues, setLocalValues] = useState<{
     [id: string]: { pricePaid: string; priceSold: string };
   }>({});
+  
+  const { handleCardFocus, handleCardBlur, isCardFocused } = useKeyboardAwareCards();
 
   // Initialize local values when entering edit mode
   useEffect(() => {
@@ -215,7 +218,12 @@ export default function SoldScreen() {
     const values = localValues[item.id] ?? { pricePaid: "", priceSold: "" };
 
     return (
-      <View style={styles.itemCard}>
+      <KeyboardAwareProductCard
+        style={styles.itemCard}
+        focused={isCardFocused(item.id)}
+        onFocus={() => handleCardFocus(item.id)}
+        onBlur={handleCardBlur}
+      >
         {/* Delete Button - Only show in edit mode */}
         {editMode && (
           <Pressable
@@ -357,7 +365,7 @@ export default function SoldScreen() {
             )}
           </View>
         </View>
-      </View>
+      </KeyboardAwareProductCard>
     );
   };
 
