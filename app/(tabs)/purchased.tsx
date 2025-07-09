@@ -1,4 +1,6 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import { KeyboardAwareProductCard } from "@/components/ui/KeyboardAwareProductCard";
+import useKeyboardAwareCards from "@/hooks/useKeyboardAwareCards";
 import { ScannedItem, useStore } from "@/store";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
@@ -6,6 +8,8 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -27,6 +31,9 @@ export default function PurchasedScreen() {
   const [localValues, setLocalValues] = useState<{
     [id: string]: { pricePaid: string; estimatedPrice: string };
   }>({});
+
+  const { handleCardFocus, handleCardBlur, isCardFocused } =
+    useKeyboardAwareCards();
 
   // Initialize local values when entering edit mode
   useEffect(() => {
@@ -187,7 +194,12 @@ export default function PurchasedScreen() {
     };
 
     return (
-      <View style={styles.itemCard}>
+      <KeyboardAwareProductCard
+        style={styles.itemCard}
+        focused={isCardFocused(item.id)}
+        onFocus={() => handleCardFocus(item.id)}
+        onBlur={handleCardBlur}
+      >
         {/* Delete Button - Only show in edit mode */}
         {editMode && (
           <Pressable
@@ -344,26 +356,35 @@ export default function PurchasedScreen() {
             </View>
           </View>
         </View>
-      </View>
+      </KeyboardAwareProductCard>
     );
   };
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {/* Sticky Header */}
-      {renderBasicHeader()}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        {/* Sticky Header */}
+        {renderBasicHeader()}
 
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListHeaderComponent={renderSummaryCards}
-        ListEmptyComponent={renderEmptyState}
-        contentContainerStyle={
-          items.length === 0 ? styles.emptyListContainer : styles.listContainer
-        }
-        showsVerticalScrollIndicator={false}
-      />
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListHeaderComponent={renderSummaryCards}
+          ListEmptyComponent={renderEmptyState}
+          contentContainerStyle={
+            items.length === 0
+              ? styles.emptyListContainer
+              : styles.listContainer
+          }
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -372,6 +393,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F2F2F7",
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   listContainer: {
     padding: 16,
