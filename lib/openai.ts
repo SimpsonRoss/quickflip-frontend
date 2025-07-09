@@ -7,6 +7,7 @@ export interface DescribeImageResult {
   condition: string;
   estimatedPrice: number | null;
   priceCount: number;
+  genre: string;
 }
 
 export async function describeImage(
@@ -16,9 +17,9 @@ export async function describeImage(
     // 🔧 Resize + compress before converting to Base64
     const compressed = await ImageManipulator.manipulateAsync(
       imageUri,
-      [{ resize: { width: 800 } }], // max width 800px
+      [{ resize: { width: 800 } }],
       {
-        compress: 0.8, // 80% quality
+        compress: 0.8,
         format: ImageManipulator.SaveFormat.JPEG,
       }
     );
@@ -44,13 +45,13 @@ export async function describeImage(
     const json = await response.json();
     console.log('✅ describeImage(): Success:\n', json);
 
-    // Make sure all expected fields are present
     return {
       title: json.title,
       description: json.description,
       condition: json.condition,
       estimatedPrice: json.estimatedPrice,
       priceCount: json.priceCount,
+      genre: json.genre,
     };
   } catch (err) {
     console.error('🔥 describeImage() threw error:\n', err);

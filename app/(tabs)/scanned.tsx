@@ -21,6 +21,7 @@ export default function ScannedScreen() {
 
   const scannedItems = allItems.filter((i) => !i.purchased && !i.sold);
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
+  const [editMode, setEditMode] = useState(false);
 
   const handleConfirm = (id: string) => {
     const rawPrice = priceInputs[id];
@@ -61,13 +62,19 @@ export default function ScannedScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Scanned Items: {scannedItems.length}</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>Scanned Items: {scannedItems.length}</Text>
+        <TouchableOpacity onPress={() => setEditMode((prev) => !prev)}>
+          <Text style={styles.editButton}>{editMode ? 'Save' : 'Edit'}</Text>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         data={scannedItems}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
           const isLoading = !item.title || !item.description;
+
           let confidence: 'Low' | 'Medium' | 'High' = 'Low';
           const count = item.priceCount ?? 0;
           if (count >= 5 && count <= 10) confidence = 'Medium';
@@ -75,13 +82,14 @@ export default function ScannedScreen() {
 
           return (
             <View style={styles.item}>
-              {/* ❌ Delete Button */}
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => handleDelete(item.id)}
-              >
-                <Text style={styles.deleteText}>×</Text>
-              </TouchableOpacity>
+              {editMode && (
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDelete(item.id)}
+                >
+                  <Text style={styles.deleteText}>×</Text>
+                </TouchableOpacity>
+              )}
 
               <Image source={{ uri: item.uri }} style={styles.image} />
               <Text style={styles.timestamp}>
@@ -102,6 +110,10 @@ export default function ScannedScreen() {
                   {item.condition && (
                     <Text style={styles.condition}>Condition: {item.condition}</Text>
                   )}
+                  {item.genre && (
+                    <Text style={styles.meta}>Genre: {item.genre}</Text>
+                  )}
+
                   {item.estimatedPrice != null && item.priceCount != null && (
                     <>
                       <Text style={styles.price}>
@@ -140,7 +152,14 @@ export default function ScannedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
-  header: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  header: { fontSize: 20, fontWeight: 'bold' },
+  editButton: { fontSize: 16, fontWeight: '600', color: '#007AFF' },
   item: {
     marginBottom: 24,
     borderBottomWidth: 1,
@@ -171,6 +190,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '600', marginTop: 8, color: '#222' },
   description: { fontSize: 14, color: '#444', marginTop: 4 },
   condition: { fontSize: 14, color: '#555', marginTop: 4, fontStyle: 'italic' },
+  meta: { fontSize: 14, color: '#333', marginTop: 6 },
   price: { fontSize: 14, color: '#006400', marginTop: 8, fontWeight: '500' },
   confidence: { fontSize: 14, color: '#555', marginTop: 2, fontStyle: 'italic' },
   inlineLabel: { fontSize: 14, marginTop: 12, marginBottom: 4 },

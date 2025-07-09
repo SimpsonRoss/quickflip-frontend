@@ -16,6 +16,7 @@ export type ScannedItem = {
   pricePaid?: number;
   sold?: boolean;
   priceSold?: number;
+  genre?: string;
 };
 
 type Store = {
@@ -47,6 +48,7 @@ export const useStore = create<Store>()(
             condition,
             estimatedPrice,
             priceCount,
+            genre,
           } = await describeImage(uri);
 
           set((state) => ({
@@ -59,6 +61,7 @@ export const useStore = create<Store>()(
                     condition,
                     estimatedPrice,
                     priceCount,
+                    genre,
                   }
                 : item
             ),
