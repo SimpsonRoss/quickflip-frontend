@@ -1,3 +1,10 @@
+import {
+  BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
+} from "@/constants/theme";
 import { useStore } from "@/store";
 import React, { useMemo } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
@@ -108,13 +115,13 @@ export function RevenueChart() {
         <View style={styles.totalsRow}>
           <View style={styles.totalItem}>
             <ThemedText style={styles.totalLabel}>Total Revenue</ThemedText>
-            <ThemedText style={[styles.totalValue, { color: "#34C759" }]}>
+            <ThemedText style={[styles.totalValue, { color: Colors.success }]}>
               ${totals.totalRevenue.toFixed(2)}
             </ThemedText>
           </View>
           <View style={styles.totalItem}>
             <ThemedText style={styles.totalLabel}>Total Profit</ThemedText>
-            <ThemedText style={[styles.totalValue, { color: "#3864bb" }]}>
+            <ThemedText style={[styles.totalValue, { color: Colors.primary }]}>
               ${totals.totalProfit.toFixed(2)}
             </ThemedText>
           </View>
@@ -123,26 +130,30 @@ export function RevenueChart() {
 
       <LineChart
         data={chartData}
-        width={screenWidth - 100} 
+        width={screenWidth - 72}
         height={220}
         chartConfig={{
-          backgroundColor: "#FFFFFF",
-          backgroundGradientFrom: "#FFFFFF",
-          backgroundGradientTo: "#FFFFFF",
+          backgroundColor: Colors.surface,
+          backgroundGradientFrom: Colors.surface,
+          backgroundGradientTo: Colors.surface,
           decimalPlaces: 0,
           color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity * 0.6})`,
+          labelColor: (opacity = 1) =>
+            Colors.textSecondary.replace(
+              "8E8E93",
+              `8E8E93${Math.round(opacity * 255).toString(16)}`
+            ),
           style: {
-            borderRadius: 16,
+            borderRadius: BorderRadius.lg,
           },
           propsForDots: {
             r: "4",
             strokeWidth: "2",
-            stroke: "#FFFFFF",
+            stroke: Colors.surface,
           },
           propsForBackgroundLines: {
             strokeDasharray: "", // solid lines
-            stroke: "#F0F0F0",
+            stroke: Colors.divider,
             strokeWidth: 1,
           },
         }}
@@ -157,11 +168,15 @@ export function RevenueChart() {
 
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#34C759" }]} />
+          <View
+            style={[styles.legendDot, { backgroundColor: Colors.success }]}
+          />
           <ThemedText style={styles.legendText}>Revenue</ThemedText>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#3864bb" }]} />
+          <View
+            style={[styles.legendDot, { backgroundColor: Colors.primary }]}
+          />
           <ThemedText style={styles.legendText}>Profit</ThemedText>
         </View>
       </View>
@@ -171,24 +186,18 @@ export function RevenueChart() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
-    marginVertical: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginTop: Spacing.sm,
+    ...Shadows.card,
   },
   header: {
-    marginBottom: 16,
+    marginBottom: Spacing.base,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1C1C1E",
-    marginBottom: 12,
+    ...Typography.heading,
+    marginBottom: Spacing.md,
   },
   totalsRow: {
     flexDirection: "row",
@@ -199,46 +208,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   totalLabel: {
-    fontSize: 14,
-    color: "#8E8E93",
-    marginBottom: 4,
+    ...Typography.caption,
+    marginBottom: Spacing.xs,
   },
   totalValue: {
+    ...Typography.bodySemiBold,
     fontSize: 18,
-    fontWeight: "600",
   },
   chart: {
-    borderRadius: 16,
+    borderRadius: BorderRadius.lg,
   },
   legend: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 16,
-    gap: 24,
+    marginTop: Spacing.base,
+    gap: Spacing.xl,
   },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
   },
   legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: Spacing.md,
+    height: Spacing.md,
+    borderRadius: Spacing.md / 2,
   },
   legendText: {
-    fontSize: 14,
-    color: "#1C1C1E",
+    ...Typography.caption,
+    color: Colors.textPrimary,
   },
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
+    paddingVertical: Spacing.xxxl,
   },
   emptyText: {
-    fontSize: 16,
-    color: "#8E8E93",
+    ...Typography.body,
+    color: Colors.textSecondary,
     textAlign: "center",
-    lineHeight: 24,
   },
 });

@@ -1,6 +1,13 @@
 import { RevenueChart } from "@/components/RevenueChart";
 import { ThemedText } from "@/components/ThemedText";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import {
+  BorderRadius,
+  Colors,
+  Shadows,
+  Spacing,
+  Typography,
+} from "@/constants/theme";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -42,14 +49,20 @@ export default function HomeScreen() {
           </ThemedText>
 
           <View style={styles.featureGrid}>
-            <View style={[styles.featureCard, { backgroundColor: "#FFFFFF" }]}>
+            <View
+              style={[styles.featureCard, { backgroundColor: Colors.surface }]}
+            >
               <View
                 style={[
                   styles.featureIconContainer,
-                  { backgroundColor: "rgba(0, 122, 255, 0.1)" },
+                  { backgroundColor: Colors.purchased.background },
                 ]}
               >
-                <IconSymbol name="camera.fill" size={24} color="#3864bb" />
+                <IconSymbol
+                  name="camera.fill"
+                  size={24}
+                  color={Colors.purchased.main}
+                />
               </View>
               <ThemedText style={styles.featureTitle}>Scan Items</ThemedText>
               <ThemedText style={styles.featureDescription}>
@@ -57,17 +70,19 @@ export default function HomeScreen() {
               </ThemedText>
             </View>
 
-            <View style={[styles.featureCard, { backgroundColor: "#FFFFFF" }]}>
+            <View
+              style={[styles.featureCard, { backgroundColor: Colors.surface }]}
+            >
               <View
                 style={[
                   styles.featureIconContainer,
-                  { backgroundColor: "rgba(52, 199, 89, 0.1)" },
+                  { backgroundColor: Colors.sold.background },
                 ]}
               >
                 <IconSymbol
                   name="dollarsign.circle.fill"
                   size={24}
-                  color="#34C759"
+                  color={Colors.sold.main}
                 />
               </View>
               <ThemedText style={styles.featureTitle}>Get Estimates</ThemedText>
@@ -76,17 +91,19 @@ export default function HomeScreen() {
               </ThemedText>
             </View>
 
-            <View style={[styles.featureCard, { backgroundColor: "#FFFFFF" }]}>
+            <View
+              style={[styles.featureCard, { backgroundColor: Colors.surface }]}
+            >
               <View
                 style={[
                   styles.featureIconContainer,
-                  { backgroundColor: "rgba(255, 149, 0, 0.1)" },
+                  { backgroundColor: Colors.scanned.background },
                 ]}
               >
                 <IconSymbol
                   name="chart.line.uptrend.xyaxis"
                   size={24}
-                  color="#FF9500"
+                  color={Colors.scanned.main}
                 />
               </View>
               <ThemedText style={styles.featureTitle}>Track Profits</ThemedText>
@@ -95,14 +112,16 @@ export default function HomeScreen() {
               </ThemedText>
             </View>
 
-            <View style={[styles.featureCard, { backgroundColor: "#FFFFFF" }]}>
+            <View
+              style={[styles.featureCard, { backgroundColor: Colors.surface }]}
+            >
               <View
                 style={[
                   styles.featureIconContainer,
-                  { backgroundColor: "rgba(255, 59, 48, 0.1)" },
+                  { backgroundColor: Colors.error + "1A" },
                 ]}
               >
-                <IconSymbol name="bolt.fill" size={24} color="#FF3B30" />
+                <IconSymbol name="bolt.fill" size={24} color={Colors.error} />
               </View>
               <ThemedText style={styles.featureTitle}>Export Data</ThemedText>
               <ThemedText style={styles.featureDescription}>
@@ -142,18 +161,18 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F2F2F7",
+    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
   },
   heroSection: {
-    backgroundColor: "#3864bb",
-    paddingTop: 40,
+    backgroundColor: Colors.primary,
+    paddingTop: Spacing.xxxl,
     paddingBottom: 60,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    paddingHorizontal: Spacing.xl,
+    borderBottomLeftRadius: BorderRadius.xxl + 8,
+    borderBottomRightRadius: BorderRadius.xxl + 8,
   },
   heroContent: {
     alignItems: "center",
@@ -161,11 +180,11 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: BorderRadius.full,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: Spacing.base,
     borderWidth: 2,
     borderColor: "#45c2c6",
     overflow: "hidden",
@@ -175,102 +194,88 @@ const styles = StyleSheet.create({
     height: 90,
   },
   heroTitle: {
-    color: "#FFFFFF",
+    color: Colors.textInverse,
     fontSize: 36,
     fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
     textAlign: "center",
   },
   heroSubtitle: {
     color: "#45c2c6",
-    fontSize: 16,
+    fontSize: Typography.body.fontSize,
     fontWeight: "500",
     textAlign: "center",
   },
   contentSection: {
-    padding: 24,
+    padding: Spacing.xl,
   },
   sectionTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1C1C1E",
-    marginBottom: 20,
+    ...Typography.subtitle,
+    marginBottom: Spacing.lg,
   },
   featureGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
-    marginBottom: 40,
+    gap: Spacing.base,
+    marginBottom: Spacing.lg,
   },
   featureCard: {
     flex: 1,
     minWidth: "45%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    ...Shadows.card,
   },
   featureIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: Spacing.huge,
+    height: Spacing.huge,
+    borderRadius: Spacing.xl,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   featureTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1C1C1E",
-    marginBottom: 6,
+    ...Typography.bodySemiBold,
+    marginBottom: Spacing.xs / 2,
   },
   featureDescription: {
-    fontSize: 14,
-    color: "#8E8E93",
+    ...Typography.caption,
     lineHeight: 20,
   },
   comingSoonSection: {
-    marginTop: 20,
+    marginTop: Spacing.lg,
   },
   comingSoonCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
     flexDirection: "row",
     alignItems: "flex-start",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+    ...Shadows.large,
     borderWidth: 1,
     borderColor: "rgba(175, 82, 222, 0.1)",
   },
   comingSoonIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: Spacing.massive,
+    height: Spacing.massive,
+    borderRadius: Spacing.xxl,
     backgroundColor: "rgba(175, 82, 222, 0.1)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: Spacing.base,
   },
   comingSoonContent: {
     flex: 1,
   },
   comingSoonTitle: {
+    ...Typography.bodySemiBold,
     fontSize: 18,
-    fontWeight: "600",
-    color: "#1C1C1E",
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   comingSoonDescription: {
+    ...Typography.caption,
     fontSize: 15,
-    color: "#8E8E93",
     lineHeight: 22,
   },
 });
