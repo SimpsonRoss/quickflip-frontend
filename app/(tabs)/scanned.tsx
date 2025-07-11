@@ -22,7 +22,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function ScannedScreen() {
   const allItems = useStore((state) => state.items);
   const markPurchased = useStore((state) => state.markPurchased);
-  const updateStore = useStore.setState;
+  const deleteItem = useStore((state) => state.deleteItem);
+  const loading = useStore((state) => state.loading);
+  const error = useStore((state) => state.error);
 
   const scannedItems = allItems.filter((i) => !i.purchased && !i.sold);
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
@@ -79,11 +81,16 @@ export default function ScannedScreen() {
         {
           text: "Clear All",
           style: "destructive",
-          onPress: () => {
+          onPress: async () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            updateStore((state) => ({
-              items: state.items.filter((item) => item.purchased || item.sold),
-            }));
+            // Delete all scanned items from database
+            const scannedItems = allItems.filter(
+              (i) => !i.purchased && !i.sold
+            );
+            const deletePromises = scannedItems.map((item) =>
+              deleteItem(item.id)
+            );
+            await Promise.all(deletePromises);
           },
         },
       ]
@@ -96,11 +103,15 @@ export default function ScannedScreen() {
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => {
+        onPress: async () => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          updateStore((state) => ({
-            items: state.items.filter((item) => item.id !== id),
-          }));
+          await deleteItem(id);
+          // Clean up price inputs to prevent any state issues
+          setPriceInputs((prev) => {
+            const copy = { ...prev };
+            delete copy[id];
+            return copy;
+          });
         },
       },
     ]);
@@ -143,7 +154,7 @@ export default function ScannedScreen() {
   );
 
   const renderItem = ({ item }: { item: ScannedItem }) => {
-    const isLoading = !item.title || !item.description;
+    const isLoading = !item.title && !item.description; // Loading if both are empty
     let confidence: "Low" | "Medium" | "High" = "Low";
     const count = item.priceCount ?? 0;
     if (count >= 5 && count <= 10) confidence = "Medium";
@@ -173,7 +184,10 @@ export default function ScannedScreen() {
 
         {/* Item Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: item.uri }} style={styles.itemImage} />
+          <Image
+            source={{ uri: item.imageUrl || item.uri }}
+            style={styles.itemImage}
+          />
           <View style={styles.timestampContainer}>
             <Text style={styles.timestamp}>
               {new Date(item.timestamp).toLocaleDateString()}
@@ -220,7 +234,11 @@ export default function ScannedScreen() {
                       color="#34C759"
                     />
                     <Text style={styles.priceText}>
-                      Est. Value: ${item.estimatedPrice.toFixed(2)}
+                      Est. Value: $
+                      {typeof item.estimatedPrice === "number" &&
+                      !isNaN(item.estimatedPrice)
+                        ? item.estimatedPrice.toFixed(2)
+                        : "—"}
                     </Text>
                   </View>
                   <View style={styles.confidenceRow}>

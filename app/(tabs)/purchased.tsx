@@ -23,7 +23,7 @@ export default function PurchasedScreen() {
   const allItems = useStore((state) => state.items);
   const markSold = useStore((state) => state.markSold);
   const updateItem = useStore((state) => state.updateItem);
-  const updateStore = useStore.setState;
+  const deleteItem = useStore((state) => state.deleteItem);
   const items = allItems.filter((i) => i.purchased && !i.sold);
 
   const [inputMap, setInputMap] = useState<{ [id: string]: string }>({});
@@ -41,17 +41,27 @@ export default function PurchasedScreen() {
       const initialValues: typeof localValues = {};
       items.forEach((item) => {
         initialValues[item.id] = {
-          pricePaid: item.pricePaid?.toFixed(2) ?? "",
-          estimatedPrice: item.estimatedPrice?.toFixed(2) ?? "",
+          pricePaid:
+            typeof item.pricePaid === "number" && !isNaN(item.pricePaid)
+              ? item.pricePaid.toFixed(2)
+              : "",
+          estimatedPrice:
+            typeof item.estimatedPrice === "number" &&
+            !isNaN(item.estimatedPrice)
+              ? item.estimatedPrice.toFixed(2)
+              : "",
         };
       });
       setLocalValues(initialValues);
     }
   }, [editMode]);
 
-  const totalPaid = items.reduce((sum, i) => sum + (i.pricePaid ?? 0), 0);
+  const totalPaid = items.reduce(
+    (sum, i) => sum + (Number(i.pricePaid) || 0),
+    0
+  );
   const totalResale = items.reduce(
-    (sum, i) => sum + (i.estimatedPrice ?? 0),
+    (sum, i) => sum + (Number(i.estimatedPrice) || 0),
     0
   );
   const totalProfit = totalResale - totalPaid;
@@ -83,26 +93,43 @@ export default function PurchasedScreen() {
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => {
+        onPress: async () => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          updateStore((state) => ({
-            items: state.items.filter((item) => item.id !== id),
-          }));
+          await deleteItem(id);
+          // Clean up local values to prevent update attempts on deleted items
+          setLocalValues((prev) => {
+            const copy = { ...prev };
+            delete copy[id];
+            return copy;
+          });
         },
       },
     ]);
   };
 
-  const handleSave = () => {
-    Object.entries(localValues).forEach(([id, values]) => {
-      const pricePaid = parseFloat(values.pricePaid);
-      const estimatedPrice = parseFloat(values.estimatedPrice);
-      const updated: Partial<ScannedItem> = {};
-      if (!isNaN(pricePaid)) updated.pricePaid = pricePaid;
-      if (!isNaN(estimatedPrice)) updated.estimatedPrice = estimatedPrice;
-      updateItem(id, updated);
-    });
-    setEditMode(false);
+  const handleSave = async () => {
+    try {
+      const updatePromises = Object.entries(localValues).map(
+        async ([id, values]) => {
+          const pricePaid = parseFloat(values.pricePaid);
+          const estimatedPrice = parseFloat(values.estimatedPrice);
+          const updated: Partial<ScannedItem> = {};
+          if (!isNaN(pricePaid)) updated.pricePaid = pricePaid;
+          if (!isNaN(estimatedPrice)) updated.estimatedPrice = estimatedPrice;
+
+          if (Object.keys(updated).length > 0) {
+            await updateItem(id, updated);
+          }
+        }
+      );
+
+      await Promise.all(updatePromises);
+      setEditMode(false);
+    } catch (error) {
+      console.error("Failed to save updates:", error);
+      // Still exit edit mode even if some updates failed
+      setEditMode(false);
+    }
   };
 
   const renderBasicHeader = () => (
@@ -215,7 +242,10 @@ export default function PurchasedScreen() {
 
         {/* Item Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: item.uri }} style={styles.itemImage} />
+          <Image
+            source={{ uri: item.imageUrl || item.uri }}
+            style={styles.itemImage}
+          />
           {profit !== null && (
             <View
               style={[
@@ -225,7 +255,9 @@ export default function PurchasedScreen() {
             >
               <Text style={styles.profitBadgeText}>
                 {profit >= 0 ? "+" : ""}
-                {profit.toFixed(0)}
+                {typeof profit === "number" && !isNaN(profit)
+                  ? profit.toFixed(0)
+                  : "0"}
               </Text>
             </View>
           )}
@@ -266,7 +298,11 @@ export default function PurchasedScreen() {
                   </View>
                 ) : (
                   <Text style={styles.priceValue}>
-                    ${item.pricePaid?.toFixed(2) ?? "—"}
+                    $
+                    {typeof item.pricePaid === "number" &&
+                    !isNaN(item.pricePaid)
+                      ? item.pricePaid.toFixed(2)
+                      : "—"}
                   </Text>
                 )}
               </View>
@@ -292,7 +328,11 @@ export default function PurchasedScreen() {
                   </View>
                 ) : (
                   <Text style={[styles.priceValue, { color: "#34C759" }]}>
-                    ${item.estimatedPrice?.toFixed(2) ?? "—"}
+                    $
+                    {typeof item.estimatedPrice === "number" &&
+                    !isNaN(item.estimatedPrice)
+                      ? item.estimatedPrice.toFixed(2)
+                      : "—"}
                   </Text>
                 )}
               </View>
@@ -308,7 +348,10 @@ export default function PurchasedScreen() {
                       { color: profit >= 0 ? "#34C759" : "#FF3B30" },
                     ]}
                   >
-                    ${profit.toFixed(2)}
+                    $
+                    {typeof profit === "number" && !isNaN(profit)
+                      ? profit.toFixed(2)
+                      : "0.00"}
                   </Text>
                   <Text
                     style={[
@@ -317,7 +360,11 @@ export default function PurchasedScreen() {
                     ]}
                   >
                     ({profitPercentage >= 0 ? "+" : ""}
-                    {profitPercentage.toFixed(0)}%)
+                    {typeof profitPercentage === "number" &&
+                    !isNaN(profitPercentage)
+                      ? profitPercentage.toFixed(0)
+                      : "0"}
+                    %)
                   </Text>
                 </View>
               </View>
