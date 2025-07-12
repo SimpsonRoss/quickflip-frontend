@@ -1,8 +1,8 @@
-import { create } from "zustand";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { persist, createJSONStorage } from "zustand/middleware";
 import { api, Product, User } from "@/lib/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export type ScannedItem = Product & {
   uri?: string; // For backwards compatibility
