@@ -14,12 +14,14 @@ export type ScannedItem = Product & {
 
 type Store = {
   user: User | null;
+  isAuthenticated: boolean; // Add auth state
   items: ScannedItem[];
   loading: boolean;
   error: string | null;
 
   // User Management
   initializeUser: (email: string, fullName?: string) => Promise<void>;
+  signOut: () => Promise<void>; // Add signOut method
 
   // Product Management
   loadItems: () => Promise<void>;
@@ -39,6 +41,7 @@ export const useStore = create<Store>()(
   persist(
     (set, get) => ({
       user: null,
+      isAuthenticated: false, // Add initial auth state
       items: [],
       loading: false,
       error: null,
@@ -48,8 +51,17 @@ export const useStore = create<Store>()(
         try {
           set({ loading: true, error: null, items: [] }); // Clear items when initializing
           const { user } = await api.createOrGetUser(email, fullName);
-          set({ user, loading: false });
-          // Note: loadItems() is called separately by the UI after user is set
+          set({ user, isAuthenticated: true }); // Set authenticated
+
+          // Load items immediately after user is set
+          try {
+            const { products } = await api.getProducts(user.id);
+            const items = products.map(transformProductPrices);
+            set({ items, loading: false });
+          } catch (itemsError) {
+            console.error("Failed to load items:", itemsError);
+            set({ items: [], loading: false }); // Set empty items on error but keep user authenticated
+          }
         } catch (error) {
           console.error("Failed to initialize user:", error);
           set({
@@ -58,7 +70,22 @@ export const useStore = create<Store>()(
                 ? error.message
                 : "Failed to initialize user",
             loading: false,
+            isAuthenticated: false,
           });
+        }
+      },
+
+      signOut: async () => {
+        try {
+          // Clear local state
+          set({
+            user: null,
+            isAuthenticated: false,
+            items: [],
+            error: null,
+          });
+        } catch (error) {
+          console.error("Sign out error:", error);
         }
       },
 
