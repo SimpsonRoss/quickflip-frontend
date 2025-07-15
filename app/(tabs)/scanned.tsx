@@ -146,8 +146,8 @@ export default function ScannedScreen() {
     const isLoading = !item.title && !item.description; // Loading if both are empty
     let confidence: "Low" | "Medium" | "High" = "Low";
     const count = item.priceCount ?? 0;
-    if (count >= 5 && count <= 10) confidence = "Medium";
-    else if (count > 10) confidence = "High";
+    if (count >= 20 && count < 40) confidence = "Medium";
+    else if (count >= 40) confidence = "High";
 
     const confidenceColor =
       confidence === "High"
@@ -250,8 +250,10 @@ export default function ScannedScreen() {
                     </View>
                     <Text style={styles.salesCountText}>
                       (
-                      {item.totalAvailable &&
-                      item.totalAvailable > item.priceCount
+                      {item.priceCount >= 50
+                        ? "50+"
+                        : item.totalAvailable &&
+                          item.totalAvailable > item.priceCount
                         ? `${item.priceCount}+`
                         : item.priceCount}{" "}
                       sales)
