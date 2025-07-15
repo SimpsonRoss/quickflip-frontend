@@ -1,11 +1,19 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { KeyboardAwareProductCard } from "@/components/ui/KeyboardAwareProductCard";
 import useKeyboardAwareCards from "@/hooks/useKeyboardAwareCards";
+import { useItemActions } from "@/hooks/useItemActions";
 import { ScannedItem, useStore } from "@/store";
+import {
+  formatPrice,
+  formatPriceWithSign,
+  calculateProfit,
+  calculateProfitPercentage,
+  parsePrice,
+} from "@/lib/priceUtils";
+import { cleanupInputState } from "@/lib/input-utils";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -22,7 +30,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function SoldScreen() {
   const allItems = useStore((state) => state.items);
   const updateItem = useStore((state) => state.updateItem);
-  const deleteItem = useStore((state) => state.deleteItem);
   const items = allItems.filter((i) => i.sold);
 
   const [editMode, setEditMode] = useState(false);
@@ -32,6 +39,7 @@ export default function SoldScreen() {
 
   const { handleCardFocus, handleCardBlur, isCardFocused } =
     useKeyboardAwareCards();
+  const { handleDelete } = useItemActions();
 
   // Initialize local values when entering edit mode
   useEffect(() => {
@@ -40,13 +48,13 @@ export default function SoldScreen() {
       items.forEach((item) => {
         initialValues[item.id] = {
           pricePaid:
-            typeof item.pricePaid === "number" && !isNaN(item.pricePaid)
-              ? item.pricePaid.toFixed(2)
-              : "",
+            formatPrice(item.pricePaid) === "—"
+              ? ""
+              : formatPrice(item.pricePaid),
           priceSold:
-            typeof item.priceSold === "number" && !isNaN(item.priceSold)
-              ? item.priceSold.toFixed(2)
-              : "",
+            formatPrice(item.priceSold) === "—"
+              ? ""
+              : formatPrice(item.priceSold),
         };
       });
       setLocalValues(initialValues);
@@ -54,11 +62,11 @@ export default function SoldScreen() {
   }, [editMode]);
 
   const totalRevenue = items.reduce(
-    (sum, i) => sum + (Number(i.priceSold) || 0),
+    (sum, i) => sum + (parsePrice(i.priceSold) || 0),
     0
   );
   const totalCost = items.reduce(
-    (sum, i) => sum + (Number(i.pricePaid) || 0),
+    (sum, i) => sum + (parsePrice(i.pricePaid) || 0),
     0
   );
   const totalProfit = totalRevenue - totalCost;
@@ -69,12 +77,11 @@ export default function SoldScreen() {
   const averageProfitPercentage =
     items.length > 0
       ? items.reduce((sum, item) => {
-          if (item.pricePaid && item.priceSold && item.pricePaid > 0) {
-            const profitPercent =
-              ((item.priceSold - item.pricePaid) / item.pricePaid) * 100;
-            return sum + profitPercent;
-          }
-          return sum;
+          const profitPercent = calculateProfitPercentage(
+            item.priceSold,
+            item.pricePaid
+          );
+          return sum + profitPercent;
         }, 0) / items.length
       : 0;
 
@@ -103,24 +110,9 @@ export default function SoldScreen() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          await deleteItem(id);
-          // Clean up local values to prevent update attempts on deleted items
-          setLocalValues((prev) => {
-            const copy = { ...prev };
-            delete copy[id];
-            return copy;
-          });
-        },
-      },
-    ]);
+  const cleanupLocalValues = (id: string) => {
+    // Clean up local values to prevent update attempts on deleted items
+    cleanupInputState(setLocalValues, id);
   };
 
   const renderBasicHeader = () => (
@@ -159,10 +151,7 @@ export default function SoldScreen() {
             />
           </View>
           <Text style={styles.analyticsValue}>
-            $
-            {typeof totalRevenue === "number" && !isNaN(totalRevenue)
-              ? totalRevenue.toFixed(2)
-              : "0.00"}
+            {formatPriceWithSign(totalRevenue)}
           </Text>
           <Text style={styles.analyticsLabel}>Total Revenue</Text>
         </View>
@@ -185,10 +174,7 @@ export default function SoldScreen() {
               { color: totalProfit >= 0 ? "#34C759" : "#FF3B30" },
             ]}
           >
-            $
-            {typeof totalProfit === "number" && !isNaN(totalProfit)
-              ? totalProfit.toFixed(2)
-              : "0.00"}
+            {formatPriceWithSign(totalProfit)}
           </Text>
           <Text style={styles.analyticsLabel}>Total Profit</Text>
           <Text
@@ -215,10 +201,7 @@ export default function SoldScreen() {
           <View style={styles.summaryDetailRow}>
             <Text style={styles.summaryDetailLabel}>Total Cost</Text>
             <Text style={styles.summaryDetailValue}>
-              $
-              {typeof totalCost === "number" && !isNaN(totalCost)
-                ? totalCost.toFixed(2)
-                : "0.00"}
+              {formatPriceWithSign(totalCost)}
             </Text>
           </View>
           <View style={styles.summaryDetailRow}>
@@ -257,14 +240,11 @@ export default function SoldScreen() {
   );
 
   const renderItem = ({ item }: { item: ScannedItem }) => {
-    const profit =
-      item.priceSold != null && item.pricePaid != null
-        ? item.priceSold - item.pricePaid
-        : null;
-
-    const profitPercentage = item.pricePaid
-      ? ((profit || 0) / item.pricePaid) * 100
-      : 0;
+    const profit = calculateProfit(item.priceSold, item.pricePaid);
+    const profitPercentage = calculateProfitPercentage(
+      item.priceSold,
+      item.pricePaid
+    );
     const soldDate = new Date(item.timestamp).toLocaleDateString();
     const values = localValues[item.id] ?? { pricePaid: "", priceSold: "" };
 
@@ -282,7 +262,7 @@ export default function SoldScreen() {
               styles.deleteButton,
               pressed && { backgroundColor: "#CC0000" },
             ]}
-            onPress={() => handleDelete(item.id)}
+            onPress={() => handleDelete(item.id, cleanupLocalValues)}
           >
             <IconSymbol name="xmark" size={14} color="#FFFFFF" />
           </Pressable>
@@ -350,11 +330,7 @@ export default function SoldScreen() {
                   </View>
                 ) : (
                   <Text style={styles.financialValue}>
-                    $
-                    {typeof item.pricePaid === "number" &&
-                    !isNaN(item.pricePaid)
-                      ? item.pricePaid.toFixed(2)
-                      : "—"}
+                    {formatPriceWithSign(item.pricePaid)}
                   </Text>
                 )}
               </View>
@@ -380,11 +356,7 @@ export default function SoldScreen() {
                   </View>
                 ) : (
                   <Text style={[styles.financialValue, { color: "#34C759" }]}>
-                    $
-                    {typeof item.priceSold === "number" &&
-                    !isNaN(item.priceSold)
-                      ? item.priceSold.toFixed(2)
-                      : "—"}
+                    {formatPriceWithSign(item.priceSold)}
                   </Text>
                 )}
               </View>
@@ -406,28 +378,24 @@ export default function SoldScreen() {
                       <Text
                         style={[
                           styles.profitPerformanceText,
-                          { color: profit >= 0 ? "#34C759" : "#FF3B30" },
+                          {
+                            color:
+                              profit && profit >= 0 ? "#34C759" : "#FF3B30",
+                          },
                         ]}
                       >
                         {profitPercentage >= 0 ? "+" : ""}
-                        {typeof profitPercentage === "number" &&
-                        !isNaN(profitPercentage)
-                          ? profitPercentage.toFixed(1)
-                          : "0.0"}
-                        %
+                        {profitPercentage.toFixed(1)}%
                       </Text>
                     </View>
                   </View>
                   <Text
                     style={[
                       styles.profitSummaryValue,
-                      { color: profit >= 0 ? "#34C759" : "#FF3B30" },
+                      { color: profit && profit >= 0 ? "#34C759" : "#FF3B30" },
                     ]}
                   >
-                    $
-                    {typeof profit === "number" && !isNaN(profit)
-                      ? profit.toFixed(2)
-                      : "0.00"}
+                    {formatPriceWithSign(profit)}
                   </Text>
                 </View>
               </View>

@@ -1,7 +1,16 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { KeyboardAwareProductCard } from "@/components/ui/KeyboardAwareProductCard";
 import useKeyboardAwareCards from "@/hooks/useKeyboardAwareCards";
+import { useItemActions } from "@/hooks/useItemActions";
 import { ScannedItem, useStore } from "@/store";
+import {
+  formatPrice,
+  formatPriceWithSign,
+  calculateProfit,
+  calculateProfitPercentage,
+  parsePrice,
+} from "@/lib/priceUtils";
+import { cleanupInputState } from "@/lib/input-utils";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import {
@@ -23,7 +32,6 @@ export default function PurchasedScreen() {
   const allItems = useStore((state) => state.items);
   const markSold = useStore((state) => state.markSold);
   const updateItem = useStore((state) => state.updateItem);
-  const deleteItem = useStore((state) => state.deleteItem);
   const items = allItems.filter((i) => i.purchased && !i.sold);
 
   const [inputMap, setInputMap] = useState<{ [id: string]: string }>({});
@@ -34,6 +42,7 @@ export default function PurchasedScreen() {
 
   const { handleCardFocus, handleCardBlur, isCardFocused } =
     useKeyboardAwareCards();
+  const { handleDelete } = useItemActions();
 
   // Initialize local values when entering edit mode
   useEffect(() => {
@@ -42,14 +51,13 @@ export default function PurchasedScreen() {
       items.forEach((item) => {
         initialValues[item.id] = {
           pricePaid:
-            typeof item.pricePaid === "number" && !isNaN(item.pricePaid)
-              ? item.pricePaid.toFixed(2)
-              : "",
+            formatPrice(item.pricePaid) === "—"
+              ? ""
+              : formatPrice(item.pricePaid),
           estimatedPrice:
-            typeof item.estimatedPrice === "number" &&
-            !isNaN(item.estimatedPrice)
-              ? item.estimatedPrice.toFixed(2)
-              : "",
+            formatPrice(item.estimatedPrice) === "—"
+              ? ""
+              : formatPrice(item.estimatedPrice),
         };
       });
       setLocalValues(initialValues);
@@ -57,11 +65,11 @@ export default function PurchasedScreen() {
   }, [editMode]);
 
   const totalPaid = items.reduce(
-    (sum, i) => sum + (Number(i.pricePaid) || 0),
+    (sum, i) => sum + (parsePrice(i.pricePaid) || 0),
     0
   );
   const totalResale = items.reduce(
-    (sum, i) => sum + (Number(i.estimatedPrice) || 0),
+    (sum, i) => sum + (parsePrice(i.estimatedPrice) || 0),
     0
   );
   const totalProfit = totalResale - totalPaid;
@@ -87,24 +95,9 @@ export default function PurchasedScreen() {
     });
   };
 
-  const handleDelete = (id: string) => {
-    Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          await deleteItem(id);
-          // Clean up local values to prevent update attempts on deleted items
-          setLocalValues((prev) => {
-            const copy = { ...prev };
-            delete copy[id];
-            return copy;
-          });
-        },
-      },
-    ]);
+  const cleanupLocalValues = (id: string) => {
+    // Clean up local values to prevent update attempts on deleted items
+    cleanupInputState(setLocalValues, id);
   };
 
   const handleSave = async () => {
@@ -161,7 +154,9 @@ export default function PurchasedScreen() {
         <View style={styles.summaryIconContainer}>
           <IconSymbol name="creditcard" size={20} color="#3864bb" />
         </View>
-        <Text style={styles.summaryValue}>${totalPaid.toFixed(2)}</Text>
+        <Text style={styles.summaryValue}>
+          {formatPriceWithSign(totalPaid)}
+        </Text>
         <Text style={styles.summaryLabel}>Total Invested</Text>
       </View>
 
@@ -169,7 +164,9 @@ export default function PurchasedScreen() {
         <View style={styles.summaryIconContainer}>
           <IconSymbol name="dollarsign.circle" size={20} color="#34C759" />
         </View>
-        <Text style={styles.summaryValue}>${totalResale.toFixed(2)}</Text>
+        <Text style={styles.summaryValue}>
+          {formatPriceWithSign(totalResale)}
+        </Text>
         <Text style={styles.summaryLabel}>Est. Value</Text>
       </View>
 
@@ -187,7 +184,7 @@ export default function PurchasedScreen() {
             { color: totalProfit >= 0 ? "#34C759" : "#FF3B30" },
           ]}
         >
-          ${totalProfit.toFixed(2)}
+          {formatPriceWithSign(totalProfit)}
         </Text>
         <Text style={styles.summaryLabel}>Potential Profit</Text>
       </View>
@@ -207,14 +204,11 @@ export default function PurchasedScreen() {
   );
 
   const renderItem = ({ item }: { item: ScannedItem }) => {
-    const profit =
-      item.estimatedPrice != null && item.pricePaid != null
-        ? item.estimatedPrice - item.pricePaid
-        : null;
-
-    const profitPercentage = item.pricePaid
-      ? ((profit || 0) / item.pricePaid) * 100
-      : 0;
+    const profit = calculateProfit(item.estimatedPrice, item.pricePaid);
+    const profitPercentage = calculateProfitPercentage(
+      item.estimatedPrice,
+      item.pricePaid
+    );
     const values = localValues[item.id] ?? {
       pricePaid: "",
       estimatedPrice: "",
@@ -234,7 +228,7 @@ export default function PurchasedScreen() {
               styles.deleteButton,
               pressed && { backgroundColor: "#CC0000" },
             ]}
-            onPress={() => handleDelete(item.id)}
+            onPress={() => handleDelete(item.id, cleanupLocalValues)}
           >
             <IconSymbol name="xmark" size={14} color="#FFFFFF" />
           </Pressable>
@@ -298,11 +292,7 @@ export default function PurchasedScreen() {
                   </View>
                 ) : (
                   <Text style={styles.priceValue}>
-                    $
-                    {typeof item.pricePaid === "number" &&
-                    !isNaN(item.pricePaid)
-                      ? item.pricePaid.toFixed(2)
-                      : "—"}
+                    {formatPriceWithSign(item.pricePaid)}
                   </Text>
                 )}
               </View>
@@ -328,11 +318,7 @@ export default function PurchasedScreen() {
                   </View>
                 ) : (
                   <Text style={[styles.priceValue, { color: "#34C759" }]}>
-                    $
-                    {typeof item.estimatedPrice === "number" &&
-                    !isNaN(item.estimatedPrice)
-                      ? item.estimatedPrice.toFixed(2)
-                      : "—"}
+                    {formatPriceWithSign(item.estimatedPrice)}
                   </Text>
                 )}
               </View>
@@ -345,13 +331,11 @@ export default function PurchasedScreen() {
                   <Text
                     style={[
                       styles.profitValue,
-                      { color: profit >= 0 ? "#34C759" : "#FF3B30" },
+                      { color: profit && profit >= 0 ? "#34C759" : "#FF3B30" },
                     ]}
                   >
-                    $
-                    {typeof profit === "number" && !isNaN(profit)
-                      ? profit.toFixed(2)
-                      : "0.00"}
+                    {profit && profit >= 0 ? "+" : ""}
+                    {formatPriceWithSign(profit)}
                   </Text>
                   <Text
                     style={[

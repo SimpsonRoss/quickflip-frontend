@@ -1,5 +1,10 @@
 // lib/api.ts
-const BASE_URL = "http://192.168.4.25:3000/api"; // Using network IP for React Native connectivity
+// Switch between local and production backend
+const USE_LOCAL_BACKEND = false; // Set to true for local development
+
+const BASE_URL = USE_LOCAL_BACKEND
+  ? "http://192.168.4.25:3000/api" // Local backend
+  : "https://quickflip-backend-ross-simpsons-projects.vercel.app/api"; // Production backend
 
 export interface User {
   id: string;
@@ -12,14 +17,15 @@ export interface User {
 export interface Product {
   id: string;
   userId: string;
-  imageUrl: string;
   title: string;
   description: string;
   condition: string;
   genre: string;
   estimatedPrice: number | null;
   priceCount: number;
-  status: "SCANNED" | "PURCHASED" | "SOLD";
+  totalAvailable?: number; // New field for 50+ feature
+  imageUrl: string;
+  status: string;
   pricePaid: number | null;
   priceSold: number | null;
   createdAt: string;
@@ -36,6 +42,7 @@ export interface DescribeImageResponse {
   genre: string;
   estimatedPrice: number | null;
   priceCount: number;
+  totalAvailable?: number; // Add this field for 50+ feature
   imageUrl: string;
 }
 
@@ -109,7 +116,17 @@ class ApiService {
 
   async updateProduct(
     productId: string,
-    updates: Partial<Pick<Product, 'title' | 'description' | 'condition' | 'estimatedPrice' | 'pricePaid' | 'priceSold'>>
+    updates: Partial<
+      Pick<
+        Product,
+        | "title"
+        | "description"
+        | "condition"
+        | "estimatedPrice"
+        | "pricePaid"
+        | "priceSold"
+      >
+    >
   ): Promise<{ product: Product }> {
     return this.request<{ product: Product }>(`/products/${productId}`, {
       method: "PUT",

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { api, Product, User } from "@/lib/api";
+import { transformProductPrices } from "@/lib/priceUtils";
 import * as FileSystem from "expo-file-system";
 
 export type ScannedItem = Product & {
@@ -69,22 +70,7 @@ export const useStore = create<Store>()(
         try {
           set({ loading: true, error: null, items: [] }); // Clear items before loading
           const { products } = await api.getProducts(user.id);
-          const items = products.map(
-            (product): ScannedItem => ({
-              ...product,
-              // Convert price fields from strings to numbers
-              estimatedPrice: product.estimatedPrice
-                ? Number(product.estimatedPrice)
-                : null,
-              pricePaid: product.pricePaid ? Number(product.pricePaid) : null,
-              priceSold: product.priceSold ? Number(product.priceSold) : null,
-              timestamp: new Date(product.createdAt).getTime(),
-              // Backwards compatibility: sold items should also be marked as purchased
-              purchased:
-                product.status === "PURCHASED" || product.status === "SOLD",
-              sold: product.status === "SOLD",
-            })
-          );
+          const items = products.map(transformProductPrices);
           set({ items, loading: false });
         } catch (error) {
           console.error("Failed to load items:", error);
@@ -164,6 +150,7 @@ export const useStore = create<Store>()(
                       ? Number(result.estimatedPrice)
                       : null,
                     priceCount: result.priceCount,
+                    totalAvailable: result.totalAvailable, // Add this field!
                   }
                 : item
             ),

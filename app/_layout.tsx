@@ -11,16 +11,19 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!hasInitialized) {
-      if (!user) {
-        // No user found, create one
-        initializeUser("test@quickflip.com", "Test User");
-      } else {
-        // User already exists (from AsyncStorage), load their items
-        loadItems();
-      }
+      // ALWAYS initialize user on app start to ensure they exist in DB
+      console.log("App starting - forcing user initialization...");
+      initializeUser("test@quickflip.com", "Test User")
+        .then(() => {
+          console.log("User initialization completed, loading items...");
+          loadItems();
+        })
+        .catch((error) => {
+          console.error("User initialization failed:", error);
+        });
       setHasInitialized(true);
     }
-  }, [user, hasInitialized, initializeUser, loadItems]);
+  }, [hasInitialized, initializeUser, loadItems]);
 
   return (
     <Stack>

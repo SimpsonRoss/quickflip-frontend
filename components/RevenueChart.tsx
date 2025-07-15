@@ -1,4 +1,5 @@
 import { useStore } from "@/store";
+import { formatPriceWithSign } from "@/lib/priceUtils";
 import React, { useMemo } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
@@ -109,13 +110,13 @@ export function RevenueChart() {
           <View style={styles.totalItem}>
             <ThemedText style={styles.totalLabel}>Total Revenue</ThemedText>
             <ThemedText style={[styles.totalValue, { color: "#34C759" }]}>
-              ${totals.totalRevenue.toFixed(2)}
+              {formatPriceWithSign(totals.totalRevenue)}
             </ThemedText>
           </View>
           <View style={styles.totalItem}>
             <ThemedText style={styles.totalLabel}>Total Profit</ThemedText>
             <ThemedText style={[styles.totalValue, { color: "#3864bb" }]}>
-              ${totals.totalProfit.toFixed(2)}
+              {formatPriceWithSign(totals.totalProfit)}
             </ThemedText>
           </View>
         </View>
@@ -123,7 +124,7 @@ export function RevenueChart() {
 
       <LineChart
         data={chartData}
-        width={screenWidth - 100} 
+        width={screenWidth - 100}
         height={220}
         chartConfig={{
           backgroundColor: "#FFFFFF",
