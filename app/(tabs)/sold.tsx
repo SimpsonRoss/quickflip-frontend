@@ -1,11 +1,19 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { KeyboardAwareProductCard } from "@/components/ui/KeyboardAwareProductCard";
 import useKeyboardAwareCards from "@/hooks/useKeyboardAwareCards";
+import { useItemActions } from "@/hooks/useItemActions";
 import { ScannedItem, useStore } from "@/store";
+import {
+  formatPrice,
+  formatPriceWithSign,
+  calculateProfit,
+  calculateProfitPercentage,
+  parsePrice,
+} from "@/lib/priceUtils";
+import { cleanupInputState } from "@/lib/input-utils";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -22,7 +30,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function SoldScreen() {
   const allItems = useStore((state) => state.items);
   const updateItem = useStore((state) => state.updateItem);
-  const updateStore = useStore.setState;
   const items = allItems.filter((i) => i.sold);
 
   const [editMode, setEditMode] = useState(false);
@@ -32,6 +39,7 @@ export default function SoldScreen() {
 
   const { handleCardFocus, handleCardBlur, isCardFocused } =
     useKeyboardAwareCards();
+  const { handleDelete } = useItemActions();
 
   // Initialize local values when entering edit mode
   useEffect(() => {
@@ -39,16 +47,28 @@ export default function SoldScreen() {
       const initialValues: typeof localValues = {};
       items.forEach((item) => {
         initialValues[item.id] = {
-          pricePaid: item.pricePaid?.toFixed(2) ?? "",
-          priceSold: item.priceSold?.toFixed(2) ?? "",
+          pricePaid:
+            formatPrice(item.pricePaid) === "—"
+              ? ""
+              : formatPrice(item.pricePaid),
+          priceSold:
+            formatPrice(item.priceSold) === "—"
+              ? ""
+              : formatPrice(item.priceSold),
         };
       });
       setLocalValues(initialValues);
     }
   }, [editMode]);
 
-  const totalRevenue = items.reduce((sum, i) => sum + (i.priceSold ?? 0), 0);
-  const totalCost = items.reduce((sum, i) => sum + (i.pricePaid ?? 0), 0);
+  const totalRevenue = items.reduce(
+    (sum, i) => sum + (parsePrice(i.priceSold) || 0),
+    0
+  );
+  const totalCost = items.reduce(
+    (sum, i) => sum + (parsePrice(i.pricePaid) || 0),
+    0
+  );
   const totalProfit = totalRevenue - totalCost;
   const profitMargin =
     totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
@@ -57,41 +77,42 @@ export default function SoldScreen() {
   const averageProfitPercentage =
     items.length > 0
       ? items.reduce((sum, item) => {
-          if (item.pricePaid && item.priceSold && item.pricePaid > 0) {
-            const profitPercent =
-              ((item.priceSold - item.pricePaid) / item.pricePaid) * 100;
-            return sum + profitPercent;
-          }
-          return sum;
+          const profitPercent = calculateProfitPercentage(
+            item.priceSold,
+            item.pricePaid
+          );
+          return sum + profitPercent;
         }, 0) / items.length
       : 0;
 
-  const handleSave = () => {
-    Object.entries(localValues).forEach(([id, values]) => {
-      const pricePaid = parseFloat(values.pricePaid);
-      const priceSold = parseFloat(values.priceSold);
-      const updated: Partial<ScannedItem> = {};
-      if (!isNaN(pricePaid)) updated.pricePaid = pricePaid;
-      if (!isNaN(priceSold)) updated.priceSold = priceSold;
-      updateItem(id, updated);
-    });
-    setEditMode(false);
+  const handleSave = async () => {
+    try {
+      const updatePromises = Object.entries(localValues).map(
+        async ([id, values]) => {
+          const pricePaid = parseFloat(values.pricePaid);
+          const priceSold = parseFloat(values.priceSold);
+          const updated: Partial<ScannedItem> = {};
+          if (!isNaN(pricePaid)) updated.pricePaid = pricePaid;
+          if (!isNaN(priceSold)) updated.priceSold = priceSold;
+
+          if (Object.keys(updated).length > 0) {
+            await updateItem(id, updated);
+          }
+        }
+      );
+
+      await Promise.all(updatePromises);
+      setEditMode(false);
+    } catch (error) {
+      console.error("Failed to save updates:", error);
+      // Still exit edit mode even if some updates failed
+      setEditMode(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          updateStore((state) => ({
-            items: state.items.filter((item) => item.id !== id),
-          }));
-        },
-      },
-    ]);
+  const cleanupLocalValues = (id: string) => {
+    // Clean up local values to prevent update attempts on deleted items
+    cleanupInputState(setLocalValues, id);
   };
 
   const renderBasicHeader = () => (
@@ -129,7 +150,9 @@ export default function SoldScreen() {
               color="#34C759"
             />
           </View>
-          <Text style={styles.analyticsValue}>${totalRevenue.toFixed(2)}</Text>
+          <Text style={styles.analyticsValue}>
+            {formatPriceWithSign(totalRevenue)}
+          </Text>
           <Text style={styles.analyticsLabel}>Total Revenue</Text>
         </View>
 
@@ -151,7 +174,7 @@ export default function SoldScreen() {
               { color: totalProfit >= 0 ? "#34C759" : "#FF3B30" },
             ]}
           >
-            ${totalProfit.toFixed(2)}
+            {formatPriceWithSign(totalProfit)}
           </Text>
           <Text style={styles.analyticsLabel}>Total Profit</Text>
           <Text
@@ -161,7 +184,10 @@ export default function SoldScreen() {
             ]}
           >
             {profitMargin >= 0 ? "+" : ""}
-            {profitMargin.toFixed(1)}% margin
+            {typeof profitMargin === "number" && !isNaN(profitMargin)
+              ? profitMargin.toFixed(1)
+              : "0.0"}
+            % margin
           </Text>
         </View>
       </View>
@@ -175,7 +201,7 @@ export default function SoldScreen() {
           <View style={styles.summaryDetailRow}>
             <Text style={styles.summaryDetailLabel}>Total Cost</Text>
             <Text style={styles.summaryDetailValue}>
-              ${totalCost.toFixed(2)}
+              {formatPriceWithSign(totalCost)}
             </Text>
           </View>
           <View style={styles.summaryDetailRow}>
@@ -189,7 +215,11 @@ export default function SoldScreen() {
               ]}
             >
               {averageProfitPercentage >= 0 ? "+" : ""}
-              {averageProfitPercentage.toFixed(1)}%
+              {typeof averageProfitPercentage === "number" &&
+              !isNaN(averageProfitPercentage)
+                ? averageProfitPercentage.toFixed(1)
+                : "0.0"}
+              %
             </Text>
           </View>
         </View>
@@ -210,14 +240,11 @@ export default function SoldScreen() {
   );
 
   const renderItem = ({ item }: { item: ScannedItem }) => {
-    const profit =
-      item.priceSold != null && item.pricePaid != null
-        ? item.priceSold - item.pricePaid
-        : null;
-
-    const profitPercentage = item.pricePaid
-      ? ((profit || 0) / item.pricePaid) * 100
-      : 0;
+    const profit = calculateProfit(item.priceSold, item.pricePaid);
+    const profitPercentage = calculateProfitPercentage(
+      item.priceSold,
+      item.pricePaid
+    );
     const soldDate = new Date(item.timestamp).toLocaleDateString();
     const values = localValues[item.id] ?? { pricePaid: "", priceSold: "" };
 
@@ -235,7 +262,7 @@ export default function SoldScreen() {
               styles.deleteButton,
               pressed && { backgroundColor: "#CC0000" },
             ]}
-            onPress={() => handleDelete(item.id)}
+            onPress={() => handleDelete(item.id, cleanupLocalValues)}
           >
             <IconSymbol name="xmark" size={14} color="#FFFFFF" />
           </Pressable>
@@ -243,7 +270,10 @@ export default function SoldScreen() {
 
         {/* Item Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: item.uri }} style={styles.itemImage} />
+          <Image
+            source={{ uri: item.imageUrl || item.uri }}
+            style={styles.itemImage}
+          />
 
           {/* Success Badge */}
           <View style={styles.soldBadge}>
@@ -300,7 +330,7 @@ export default function SoldScreen() {
                   </View>
                 ) : (
                   <Text style={styles.financialValue}>
-                    ${item.pricePaid?.toFixed(2) ?? "—"}
+                    {formatPriceWithSign(item.pricePaid)}
                   </Text>
                 )}
               </View>
@@ -326,7 +356,7 @@ export default function SoldScreen() {
                   </View>
                 ) : (
                   <Text style={[styles.financialValue, { color: "#34C759" }]}>
-                    ${item.priceSold?.toFixed(2) ?? "—"}
+                    {formatPriceWithSign(item.priceSold)}
                   </Text>
                 )}
               </View>
@@ -348,7 +378,10 @@ export default function SoldScreen() {
                       <Text
                         style={[
                           styles.profitPerformanceText,
-                          { color: profit >= 0 ? "#34C759" : "#FF3B30" },
+                          {
+                            color:
+                              profit && profit >= 0 ? "#34C759" : "#FF3B30",
+                          },
                         ]}
                       >
                         {profitPercentage >= 0 ? "+" : ""}
@@ -359,10 +392,10 @@ export default function SoldScreen() {
                   <Text
                     style={[
                       styles.profitSummaryValue,
-                      { color: profit >= 0 ? "#34C759" : "#FF3B30" },
+                      { color: profit && profit >= 0 ? "#34C759" : "#FF3B30" },
                     ]}
                   >
-                    ${profit.toFixed(2)}
+                    {formatPriceWithSign(profit)}
                   </Text>
                 </View>
               </View>

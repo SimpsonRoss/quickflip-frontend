@@ -1,5 +1,8 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { ScannedItem, useStore } from "@/store";
+import { formatPriceWithSign } from "@/lib/priceUtils";
+import { useItemActions } from "@/hooks/useItemActions";
+import { cleanupInputState } from "@/lib/input-utils";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import {
@@ -22,12 +25,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function ScannedScreen() {
   const allItems = useStore((state) => state.items);
   const markPurchased = useStore((state) => state.markPurchased);
-  const updateStore = useStore.setState;
+  const deleteItem = useStore((state) => state.deleteItem); // Still needed for bulk operations
+  const loading = useStore((state) => state.loading);
+  const error = useStore((state) => state.error);
 
   const scannedItems = allItems.filter((i) => !i.purchased && !i.sold);
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
   const [editMode, setEditMode] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const { handleDelete } = useItemActions();
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -79,31 +85,25 @@ export default function ScannedScreen() {
         {
           text: "Clear All",
           style: "destructive",
-          onPress: () => {
+          onPress: async () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            updateStore((state) => ({
-              items: state.items.filter((item) => item.purchased || item.sold),
-            }));
+            // Delete all scanned items from database
+            const scannedItems = allItems.filter(
+              (i) => !i.purchased && !i.sold
+            );
+            const deletePromises = scannedItems.map((item) =>
+              deleteItem(item.id)
+            );
+            await Promise.all(deletePromises);
           },
         },
       ]
     );
   };
 
-  const handleDelete = (id: string) => {
-    Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-          updateStore((state) => ({
-            items: state.items.filter((item) => item.id !== id),
-          }));
-        },
-      },
-    ]);
+  const cleanupPriceInputs = (id: string) => {
+    // Clean up price inputs to prevent any state issues
+    cleanupInputState(setPriceInputs, id);
   };
 
   const renderHeader = () => (
@@ -143,7 +143,7 @@ export default function ScannedScreen() {
   );
 
   const renderItem = ({ item }: { item: ScannedItem }) => {
-    const isLoading = !item.title || !item.description;
+    const isLoading = !item.title && !item.description; // Loading if both are empty
     let confidence: "Low" | "Medium" | "High" = "Low";
     const count = item.priceCount ?? 0;
     if (count >= 5 && count <= 10) confidence = "Medium";
@@ -165,7 +165,7 @@ export default function ScannedScreen() {
               styles.deleteButton,
               pressed && { backgroundColor: "#CC0000" },
             ]}
-            onPress={() => handleDelete(item.id)}
+            onPress={() => handleDelete(item.id, cleanupPriceInputs)}
           >
             <IconSymbol name="xmark" size={14} color="#FFFFFF" />
           </Pressable>
@@ -173,7 +173,10 @@ export default function ScannedScreen() {
 
         {/* Item Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: item.uri }} style={styles.itemImage} />
+          <Image
+            source={{ uri: item.imageUrl || item.uri }}
+            style={styles.itemImage}
+          />
           <View style={styles.timestampContainer}>
             <Text style={styles.timestamp}>
               {new Date(item.timestamp).toLocaleDateString()}
@@ -220,7 +223,7 @@ export default function ScannedScreen() {
                       color="#34C759"
                     />
                     <Text style={styles.priceText}>
-                      Est. Value: ${item.estimatedPrice.toFixed(2)}
+                      Est. Value: {formatPriceWithSign(item.estimatedPrice)}
                     </Text>
                   </View>
                   <View style={styles.confidenceRow}>
@@ -246,7 +249,12 @@ export default function ScannedScreen() {
                       </Text>
                     </View>
                     <Text style={styles.salesCountText}>
-                      ({item.priceCount} sales)
+                      (
+                      {item.totalAvailable &&
+                      item.totalAvailable > item.priceCount
+                        ? `${item.priceCount}+`
+                        : item.priceCount}{" "}
+                      sales)
                     </Text>
                   </View>
                 </View>
