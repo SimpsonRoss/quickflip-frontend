@@ -1,6 +1,6 @@
 // lib/api.ts
 // Switch between local and production backend
-const USE_LOCAL_BACKEND = false; // Set to true for local development
+const USE_LOCAL_BACKEND = true; // Set to true for local development
 
 const BASE_URL = USE_LOCAL_BACKEND
   ? "http://192.168.4.25:3000/api" // Local backend
